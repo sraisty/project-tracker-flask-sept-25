@@ -19,7 +19,10 @@ def connect_to_db(app):
     db.app = app
     db.init_app(app)
 
-def get_all_student_names():
+
+#### STUDENTS  ############
+
+def get_all_students():
     QUERY = """
         SELECT first_name, last_name, github
         FROM students
@@ -27,13 +30,6 @@ def get_all_student_names():
     db_cursor = db.session.execute(QUERY)
     return db_cursor.fetchall()
 
-def get_all_project_titles():
-    QUERY = """
-        SELECT title
-        FROM projects
-        """
-    db_cursor = db.session.execute(QUERY)
-    return db_cursor.fetchall()
 
 def get_student_by_github(github):
     """Given a GitHub account name, print info about the matching student."""
@@ -73,6 +69,17 @@ def make_new_student(first_name, last_name, github):
     print(f"Successfully added student: {first_name} {last_name}")
 
 
+#### PROJECTS  ############
+
+def get_all_project_titles():
+    QUERY = """
+        SELECT title
+        FROM projects
+        """
+    db_cursor = db.session.execute(QUERY)
+    return db_cursor.fetchall()
+
+
 def get_project_by_title(title):
     """Given a project title, print information about the project."""
 
@@ -87,12 +94,27 @@ def get_project_by_title(title):
     row = db_cursor.fetchone()
 
     print(f"Title: {row[0]}\nDescription: {row[1]}\nMax Grade: {row[2]}")
-
     return row
 
 
+def make_new_project(title, description, max_grade):
+    QUERY = """
+            INSERT INTO projects(title, description, max_grade)
+            VALUES(:title, :description, :max_grade)
+            """
+
+    db.session.execute(QUERY, {'title': title, 
+                               'description': description, 
+                               'max_grade': max_grade})
+    db.session.commit()
+    print(f"Successfully added project: {title}.")
+
+
+#### GRADES  ############
+
 def get_grade_by_github_title(github, title):
     """Print grade student received for a project."""
+    """ Returns None of no matching records are found """
 
     QUERY = """
         SELECT grade
@@ -105,26 +127,10 @@ def get_grade_by_github_title(github, title):
 
     row = db_cursor.fetchone()
 
-    print(f"Student {github} in project {title} received grade of {row[0]}")
+    # print(f"Student {github} in project {title} received grade of {row[0]}")
 
     return row
 
-
-def assign_grade(github, title, grade):
-    """Assign a student a grade on an assignment and print a confirmation."""
-
-    QUERY = """
-        INSERT INTO grades (student_github, project_title, grade)
-          VALUES (:github, :title, :grade)
-        """
-
-    db_cursor = db.session.execute(QUERY, {'github': github,
-                                           'title': title,
-                                           'grade': grade})
-
-    db.session.commit()
-
-    print(f"Successfully assigned grade of {grade} for {github} in {title}")
 
 
 def get_grades_by_github(github):
@@ -139,6 +145,7 @@ def get_grades_by_github(github):
     db_cursor = db.session.execute(QUERY, {'github': github})
 
     rows = db_cursor.fetchall()
+    print (f"\n\n\n\n\n\n\n\nROWS are {rows}\n\n\n\n\n\n")
 
     for row in rows:
         print(f"Student {github} received grade of {row[1]} for {row[0]}")
@@ -164,6 +171,38 @@ def get_grades_by_title(title):
 
     return rows
 
+
+def update_grade(github, title, grade):
+    QUERY = """
+        UPDATE grades 
+        SET grade=:grade
+        WHERE student_github=:github AND project_title=:title
+        """
+    db.session.execute(QUERY, 
+                       {'github': github, 'title': title, 'grade': grade})
+    db.session.commit()
+    print(f"Successfully updated grade to {grade} for {github} on {title}")
+
+
+
+def assign_grade(github, title, grade):
+    """Assign a student a grade on an assignment and print a confirmation."""
+
+    QUERY = """
+        INSERT INTO grades (student_github, project_title, grade)
+          VALUES (:github, :title, :grade)
+        """
+
+    db_cursor = db.session.execute(QUERY, {'github': github,
+                                           'title': title,
+                                           'grade': grade})
+
+    db.session.commit()
+
+    print(f"Successfully assigned grade of {grade} for {github} in {title}")
+
+
+##########  HANDLE COMMANDS  ##########
 
 def handle_input():
     """Main loop.
